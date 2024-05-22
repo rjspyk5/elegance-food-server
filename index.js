@@ -29,6 +29,9 @@ async function run() {
     const reviewCollection = client
       .db("eleganceFood")
       .collection("reviewCollection");
+    const cartsCollection = client
+      .db("eleganceFood")
+      .collection("cartsCollection");
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
     // Send a ping to confirm a successful connection
@@ -40,6 +43,12 @@ async function run() {
     app.get("/menu", async (req, res) => {
       const result = await menuCollection.find().toArray();
 
+      res.send(result);
+    });
+    // cartCollection
+    app.post("/carts", async (req, res) => {
+      const cartItem = req.body;
+      const result = await cartsCollection.insertOne(cartItem);
       res.send(result);
     });
   } finally {
