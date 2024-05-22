@@ -23,6 +23,12 @@ const client = new MongoClient(uri, {
 
 async function run() {
   try {
+    const menuCollection = client
+      .db("eleganceFood")
+      .collection("menuCollection");
+    const reviewCollection = client
+      .db("eleganceFood")
+      .collection("reviewCollection");
     // Connect the client to the server	(optional starting in v4.7)
     await client.connect();
     // Send a ping to confirm a successful connection
@@ -30,6 +36,12 @@ async function run() {
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
+
+    app.get("/menu", async (req, res) => {
+      const result = await menuCollection.find().toArray();
+
+      res.send(result);
+    });
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
