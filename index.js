@@ -49,13 +49,27 @@ async function run() {
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
 
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+    };
     // jwt related api
+    // When login user
     app.post("/jwt", async (req, res) => {
       const user = req.body;
       const token = jwt.sign(user, process.env.access_token, {
         expiresIn: "7d",
       });
-      res.send({ token });
+      res.cookie("token", token, cookieOptions).send({ success: true });
+    });
+
+    // When logout user remove cokkie
+    app.post("/logout", async (req, res) => {
+      const user = req.body;
+      res
+        .clearCookie("token", { ...cookieOptions, maxAge: 0 })
+        .send({ success: true });
     });
 
     // menu related api
