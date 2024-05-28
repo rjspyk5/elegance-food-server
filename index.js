@@ -20,14 +20,13 @@ const verifyToken = (req, res, next) => {
   if (!token) {
     return res.status(401).send({ message: "forbidden access" });
   }
-  jwt.verify(token, process.env.access_token, (err, decoded) => {
+  jwt.verify(token, process.env.access_token, (er, decoded) => {
     if (er) {
       return res.status(401).send({ message: "unauthorized" });
     }
     req.user = decoded;
+    next();
   });
-
-  next();
 };
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.omgilvs.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
@@ -94,6 +93,16 @@ async function run() {
       res.send(result);
     });
     // user collection related api
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.user.email;
+      const query = { email: email };
+      const result = await usersCollection.findOne(query);
+      if (!result?.role === "admin") {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+      next();
+    };
+
     app.post("/user", async (req, res) => {
       const data = req.body;
       // check user already exist or not
@@ -108,10 +117,24 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/user", async (req, res) => {
+    app.get("/user", verifyToken, async (req, res) => {
       const result = await usersCollection.find().toArray();
       res.send(result);
     });
+
+    app.get(
+      "/user/admin/:email",
+      verifyToken,
+      verifyAdmin,
+      async (req, res) => {
+        const email = req.params.email;
+        const tokenEmail = req.user?.email;
+        if (email !== tokenEmail) {
+          return res.status(403).send({ message: "forbidden access" });
+        }
+        res.send(true);
+      }
+    );
     app.patch("/user/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
