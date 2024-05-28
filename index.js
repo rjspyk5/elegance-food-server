@@ -8,11 +8,25 @@ require("dotenv").config();
 const port = process.env.PORT || 5000;
 
 app.use(express.json());
-app.use(cors());
+app.use(cookieParser());
+app.use(
+  cors({
+    origin: ["http://localhost:5174", "http://localhost:5173"], //eikhan e production eer khetre production er adress dite hbe//
+    credentials: true,
+  })
+);
 const verifyToken = (req, res, next) => {
-  if (token) {
+  const token = req.cookies?.token;
+  if (!token) {
     return res.status(401).send({ message: "forbidden access" });
   }
+  jwt.verify(token, process.env.access_token, (err, decoded) => {
+    if (er) {
+      return res.status(401).send({ message: "unauthorized" });
+    }
+    req.user = decoded;
+  });
+
   next();
 };
 
