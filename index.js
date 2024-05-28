@@ -9,6 +9,12 @@ const port = process.env.PORT || 5000;
 
 app.use(express.json());
 app.use(cors());
+const verifyToken = (req, res, next) => {
+  if (token) {
+    return res.status(401).send({ message: "forbidden access" });
+  }
+  next();
+};
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.omgilvs.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -42,6 +48,17 @@ async function run() {
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
+
+    // jwt related api
+    app.post("/jwt", async (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.access_token, {
+        expiresIn: "7d",
+      });
+      res.send({ token });
+    });
+
+    // menu related api
 
     app.get("/menu", async (req, res) => {
       const result = await menuCollection.find().toArray();
