@@ -135,7 +135,7 @@ async function run() {
         res.send(true);
       }
     );
-    app.patch("/user/:id", async (req, res) => {
+    app.patch("/user/:id", verifyToken, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const updateDoc = {
