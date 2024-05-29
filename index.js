@@ -45,7 +45,6 @@ async function run() {
 
     app.get("/menu", async (req, res) => {
       const result = await menuCollection.find().toArray();
-
       res.send(result);
     });
     // user collection related api
