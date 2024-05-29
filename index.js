@@ -91,6 +91,12 @@ async function run() {
       const result = await menuCollection.find().toArray();
       res.send(result);
     });
+
+    app.post("/menu", async (req, res) => {
+      const data = req.body;
+      const result = await menuCollection.insertOne(data);
+      res.send(result);
+    });
     // user collection related api
     const verifyAdmin = async (req, res, next) => {
       const email = req.user.email;
