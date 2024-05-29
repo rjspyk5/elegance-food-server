@@ -8,7 +8,26 @@ require("dotenv").config();
 const port = process.env.PORT || 5000;
 
 app.use(express.json());
-app.use(cors());
+app.use(cookieParser());
+app.use(
+  cors({
+    origin: ["http://localhost:5174", "http://localhost:5173"], //eikhan e production eer khetre production er adress dite hbe//
+    credentials: true,
+  })
+);
+const verifyToken = (req, res, next) => {
+  const token = req.cookies?.token;
+  if (!token) {
+    return res.status(401).send({ message: "forbidden access" });
+  }
+  jwt.verify(token, process.env.access_token, (er, decoded) => {
+    if (er) {
+      return res.status(401).send({ message: "unauthorized" });
+    }
+    req.user = decoded;
+    next();
+  });
+};
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.omgilvs.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
@@ -43,11 +62,46 @@ async function run() {
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
 
+    const cookieOptions = {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+    };
+    // jwt related api
+    // When login user
+    app.post("/jwt", async (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.access_token, {
+        expiresIn: "7d",
+      });
+      res.cookie("token", token, cookieOptions).send({ success: true });
+    });
+
+    // When logout user remove cokkie
+    app.post("/logout", async (req, res) => {
+      const user = req.body;
+      res
+        .clearCookie("token", { ...cookieOptions, maxAge: 0 })
+        .send({ success: true });
+    });
+
+    // menu related api
+
     app.get("/menu", async (req, res) => {
       const result = await menuCollection.find().toArray();
       res.send(result);
     });
     // user collection related api
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.user.email;
+      const query = { email: email };
+      const result = await usersCollection.findOne(query);
+      if (!result?.role === "admin") {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+      next();
+    };
+
     app.post("/user", async (req, res) => {
       const data = req.body;
       // check user already exist or not
@@ -62,11 +116,25 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/user", async (req, res) => {
+    app.get("/user", verifyToken, async (req, res) => {
       const result = await usersCollection.find().toArray();
       res.send(result);
     });
-    app.patch("/user/:id", async (req, res) => {
+
+    app.get(
+      "/user/admin/:email",
+      verifyToken,
+      verifyAdmin,
+      async (req, res) => {
+        const email = req.params.email;
+        const tokenEmail = req.user?.email;
+        if (email !== tokenEmail) {
+          return res.status(403).send({ message: "forbidden access" });
+        }
+        res.send(true);
+      }
+    );
+    app.patch("/user/:id", verifyToken, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const updateDoc = {
