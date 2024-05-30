@@ -137,6 +137,12 @@ async function run() {
       const result = await menuCollection.insertOne(data);
       res.send(result);
     });
+    app.delete("/menu/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { $or: [{ _id: new ObjectId(id) }, { _id: id }] };
+      const result = await menuCollection.deleteOne(query);
+      res.send(result);
+    });
 
     app.post("/user", async (req, res) => {
       const data = req.body;
